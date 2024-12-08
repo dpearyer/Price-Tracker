@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Marcellus&family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Rosarivo:ital@0;1&family=Rubik+Bubbles&display=swap');
+    </style>
+    <style>
+        body {
+            background-image: url('images/paper-background.png');
+        }
+
+        .input {
+            outline-color: lightblue;
+            border-radius: 20px;
+            height: 8px;
+        }
+        h1 {
+            text-align: center;
+            font-family: "Funnel Sans", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+        h2 {
+            font-family: "Funnel Sans", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 300;
+            font-style: normal;
+        }
+        label {
+            font-family: "Funnel Sans", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 300;
+            font-style: normal;
+            font-size: 25px;
+            margin: 10px;
+        }
+        #priceForm {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 30vh;
+            margin: 0;
+        }
+        input {
+            border-radius: 8px;
+            height: 20px;
+            width: 100%;
+            padding: 12px;
+            margin: 20px, 0;
+            border: 2px black solid;
+        }
+        button {
+            align-self: center;
+            background-color: #fff;
+            background-image: none;
+            background-position: 0 90%;
+            background-repeat: repeat no-repeat;
+            background-size: 4px 3px;
+            border-radius: 15px 225px 255px 15px 15px 255px 225px 15px;
+            border-style: solid;
+            border-width: 2px;
+            box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+            box-sizing: border-box;
+            color: #41403e;
+            cursor: pointer;
+            display: inline-block;
+            font-family: Neucha, sans-serif;
+            font-size: 1rem;
+            line-height: 23px;
+            outline: none;
+            padding: .75rem;
+            text-decoration: none;
+            transition: all 235ms ease-in-out;
+            border-bottom-left-radius: 15px 255px;
+            border-bottom-right-radius: 225px 15px;
+            border-top-left-radius: 255px 15px;
+            border-top-right-radius: 15px 225px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            margin: 20px;
+        }
+
+        .button:hover {
+            box-shadow: rgba(0, 0, 0, .3) 2px 8px 8px -5px;
+            transform: translate3d(0, 2px, 0);
+        }
+
+        .button:focus {
+            box-shadow: rgba(0, 0, 0, .3) 2px 8px 4px -6px;
+        }
+
+        .response {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .no-change {
+            color: orange;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .hidden {
+            display: none;
+        }
+        #stopButton {
+            display: inline-block;
+        }
+        
+    </style>
+</head>
+<body>
+    <h1>Price Tracker</h1>
+
+    <form id="priceForm">
+        <label for="url">Product URL:</label>
+        <input type="url" id="url" name="url" placeholder="Enter the product URL" required>
+
+        <label for="email">Your Email:</label>
+        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+
+        <button type="submit">Start Monitoring</button>
+        <button type="button" id="stopButton" class="hidden">Stop Monitoring</button>
+    </form>
+
+    <h2>Tracked Products:</h2>
+    <div id="trackedProducts"></div>
+
+    <div id="response" class="response" style="display: none;"></div>
+
+    <script>
+        let monitoringActive = false; 
+
+        document.getElementById("priceForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            if (monitoringActive) return; 
+
+            const url = document.getElementById("url").value;
+            const email = document.getElementById("email").value;
+
+            fetch("http://127.0.0.1:5000/scrape", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ url: url, email: email }) 
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById("response");
+                responseDiv.style.display = "block";
+
+                if (data.status === "success") {
+                    responseDiv.innerHTML = `<p class="success">Price dropped! Email sent to ${data.email}. New price: $${data.price}</p>`;
+                } else if (data.status === "no_change") {
+                    responseDiv.innerHTML = `<p class="no-change">No price drop detected. Current price: $${data.price}</p>`;
+                } else if (data.error) {
+                    responseDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                }
+
+                document.getElementById("stopButton").classList.remove("hidden");
+                monitoringActive = true; 
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
+                const responseDiv = document.getElementById("response");
+                responseDiv.style.display = "block";
+                responseDiv.innerHTML = `<p class="error">An error occurred while checking the product details.</p>`;
+            });
+        });
+
+        document.getElementById("stopButton").addEventListener("click", function() {
+            monitoringActive = false; 
+            document.getElementById("response").style.display = "none"; 
+            document.getElementById("stopButton").classList.add("hidden"); 
+            document.getElementById("url").value = ''; 
+            document.getElementById("email").value = ''; 
+        });
+    </script>
+</body>
+</html>
